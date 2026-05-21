@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Assistant</title>
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --primary: #4f46e5;
+    --text: #1e1e1e;
+    --text-secondary: #666;
+    --bubble-user: #4f46e5;
+    --bubble-ai: #ffffff;
+    --border: #e0e0e0;
+    --tool-bg: #f0fdf4;
+    --tool-border: #bbf7d0;
+    --loc-bg: #eef2ff;
+    --loc-border: #c7d2fe;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    height: 100vh;
+    display: flex;
+  }
+
+  /* 侧边栏 */
+  #sidebar {
+    width: 260px; min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transition: margin-left 0.2s;
+  }
+  #sidebar.collapsed { margin-left: -260px; }
+  #sidebar-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #sidebar-header span { font-size: 14px; font-weight: 600; color: var(--text); }
+  #sidebar-header button {
+    background: none; border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  #session-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .session-item {
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: var(--text); margin-bottom: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .session-item { position: relative; }
+  .session-item:hover { background: #f0f0f0; }
+  .session-item.active { background: #eef2ff; color: var(--primary); font-weight: 500; }
+  .session-item .time { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; }
+  .session-actions { display: none; position: absolute; right: 8px; top: 8px; gap: 4px; }
+  .session-item:hover .session-actions { display: flex; }
+  .session-actions button {
+    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 8px; font-size: 11px; cursor: pointer; color: var(--text-secondary);
+  }
+  .session-actions button:hover { background: var(--bg); }
+  .session-actions .del:hover { color: #ef4444; border-color: #ef4444; }
+
+  /* 主区域 */
+  #main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  #menu-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer;
+    font-size: 16px; color: var(--text-secondary); display: none;
+  }
+  header button {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  header button:hover { background: var(--bg); }
+
+  @media (max-width: 768px) {
+    #sidebar { position: absolute; z-index: 50; height: 100vh; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+    #menu-btn { display: block; }
+  }
+
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 800px;
+    animation: fadeIn 0.2s ease;
+  }
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+  .message.ai { align-self: flex-start; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .message.user .avatar { background: var(--primary); color: white; }
+  .message.ai .avatar { background: #e8e5ff; color: var(--primary); }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.6;
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .message.user .bubble {
+    background: var(--bubble-user);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .message.ai .bubble {
+    background: var(--bubble-ai);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble h2 { font-size: 17px; margin: 12px 0 6px; color: var(--primary); }
+  .bubble h3 { font-size: 15px; margin: 10px 0 4px; }
+  .bubble ul { padding-left: 20px; margin: 6px 0; }
+  .bubble li { margin: 3px 0; line-height: 1.5; }
+  .bubble code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  .bubble blockquote {
+    border-left: 3px solid var(--primary);
+    padding: 4px 12px; margin: 8px 0;
+    color: var(--text-secondary); background: #f9f9f9;
+    border-radius: 0 6px 6px 0;
+  }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .bubble strong { color: #1e1e1e; }
+
+  .copy-btn {
+    position: absolute; top: 6px; right: 6px;
+    background: none; border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 8px;
+    font-size: 12px; color: var(--text-secondary);
+    cursor: pointer; opacity: 0; transition: opacity 0.15s;
+  }
+  .message.ai:hover .copy-btn { opacity: 1; }
+  .copy-btn.copied { color: #22c55e; border-color: #22c55e; }
+
+  .map-link {
+    display: inline-block;
+    padding: 2px 10px; margin-left: 6px;
+    background: #dcfce7; color: #16a34a;
+    border-radius: 12px; font-size: 12px;
+    text-decoration: none; white-space: nowrap; cursor: pointer;
+  }
+  .map-link:hover { background: #bbf7d0; }
+
+  .tool-indicator {
+    margin: 4px 0;
+    padding: 8px 12px;
+    background: var(--loc-bg);
+    border: 1px solid var(--loc-border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--primary);
+    animation: fadeIn 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.3s;
+  }
+  .tool-indicator .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+  }
+  #input-area {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+  }
+  #input-area textarea {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 46px;
+    max-height: 150px;
+  }
+  #input-area textarea:focus { border-color: var(--primary); }
+  #input-area button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0 20px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  #input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #input-area button:hover:not(:disabled) { opacity: 0.9; }
+
+  #loc-btn {
+    background: none !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-secondary) !important;
+    font-size: 22px !important;
+    padding: 0 12px !important;
+  }
+  #loc-btn.active {
+    background: var(--loc-bg) !important;
+    border-color: var(--loc-border) !important;
+    color: var(--primary) !important;
+  }
+
+  #loc-bar {
+    max-width: 800px;
+    margin: 0 auto 8px auto;
+    font-size: 12px;
+    color: var(--primary);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  #loc-bar.visible { display: flex; }
+
+  /* 偏好标签 */
+  #pref-tags {
+    max-width: 800px; margin: 0 auto 6px auto;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .pref-tag {
+    font-size: 12px; padding: 3px 10px;
+    border-radius: 14px; cursor: pointer;
+    background: var(--loc-bg); color: var(--primary);
+    border: 1px solid var(--loc-border);
+  }
+  .pref-tag:hover { opacity: 0.8; }
+
+  /* 偏好面板 */
+  #pref-panel {
+    display: none; position: fixed; top: 50px; right: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12); width: 340px;
+  }
+  #pref-panel.open { display: block; }
+  #pref-panel h3 { font-size: 14px; margin-bottom: 12px; }
+  .pref-row { margin-bottom: 12px; }
+  .pref-row label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  .pref-row .options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pref-row .opt {
+    font-size: 12px; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 16px;
+    cursor: pointer; white-space: nowrap; background: var(--surface);
+  }
+  .pref-row .opt:hover { border-color: var(--primary); }
+  .pref-row .opt.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
+  #pref-done {
+    width: 100%; margin-top: 8px; padding: 8px;
+    background: var(--primary); color: #fff;
+    border: none; border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    gap: 8px;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 8px; }
+  .empty-state p { font-size: 15px; }
+  .empty-state .hints { font-size: 13px; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .empty-state .hints span {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .empty-state .hints span:hover { background: #eee; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <span>历史会话</span>
+    <button onclick="newSession()">+ 新会话</button>
+  </div>
+  <div id="session-list"></div>
+  <div id="kb-stats" style="padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-secondary);"></div>
+</div>
+
+<div id="main">
+
+<header>
+  <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+  <h1>AI Assistant <span style="font-size:11px;color:#999;">v23</span></h1>
+  <div style="display:flex;gap:8px;">
+    <button onclick="togglePrefPanel()" id="pref-btn" style="position:relative;">
+      偏好 <span id="pref-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;background:#ef4444;border-radius:50%;"></span>
+    </button>
+    <button onclick="newSession()">新对话</button>
+    <a href="/dashboard" target="_blank" style="font-size:13px;color:var(--text-secondary);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;">监控</a>
+  </div>
+</header>
+
+<!-- 偏好设置面板 -->
+<div id="pref-panel">
+  <h3>旅行偏好设置</h3>
+  <div id="pref-rows"></div>
+  <button id="pref-done" onclick="togglePrefPanel()">完成</button>
+</div>
+
+<!-- 偏好标签显示 -->
+<div id="pref-tags"></div>
+
+<div id="chat">
+  <div class="empty-state" id="empty-state">
+    <div class="icon"></div>
+    <p>有什么可以帮你的？</p>
+    <div class="hints">
+      <span onclick="sendHint('北京今天天气怎么样？')">查天气</span>
+      <span onclick="sendHint('计算 256 * 128')">算数学</span>
+      <span onclick="sendHint('去广州塔怎么坐地铁？')">查路线</span>
+    </div>
+  </div>
+</div>
+
+<!-- 选中地名后的"去这里"浮动按钮 -->
+<div id="goto-btn" style="display:none;position:fixed;z-index:200;background:var(--primary);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.2);white-space:nowrap;"
+     onclick="gotoSelected()"></div>
+
+<footer>
+  <div id="input-area">
+    <textarea id="input" rows="1" placeholder="输入消息..." onkeydown="onKeyDown(event)"></textarea>
+    <button id="loc-btn" onclick="getLocation()" title="获取当前位置"></button>
+    <button id="send-btn" onclick="send()">发送</button>
+  </div>
+</footer>
+
+</div><!-- #main -->
+
+<script>
+  // 持久化 threadId
+  let threadId = localStorage.getItem('lastThreadId') || ('session_' + Date.now());
+  localStorage.setItem('lastThreadId', threadId);
+  let isStreaming = false;
+  let userLocation = null;
+
+  // ============ 侧边栏 ============
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  async function loadSessions() {
+    try {
+      const resp = await fetch('/api/sessions');
+      const sessions = await resp.json();
+      const list = document.getElementById('session-list');
+      list.innerHTML = sessions.map(s => {
+        const active = s.thread_id === threadId ? ' active' : '';
+        const time = (s.updated_at || s.created_at || '').replace('2026-', '').replace('2025-', '');
+        return '<div class="session-item' + active + '" onclick="switchSession(\'' + s.thread_id + '\')">'
+          + (s.title || '新对话')
+          + '<span class="time">' + time + '</span>'
+          + '<div class="session-actions" onclick="event.stopPropagation()">'
+          + '<button onclick="renameSession(\'' + s.thread_id + '\')">改名</button>'
+          + '<button class="del" onclick="deleteSession(\'' + s.thread_id + '\')">删除</button>'
+          + '</div></div>';
+      }).join('');
+    } catch {}
+  }
+
+  async function renameSession(tid) {
+    const old = document.querySelector('.session-item.active')?.textContent?.trim() || '';
+    const title = prompt('新名称：', old);
+    if (!title || !title.trim()) return;
+    await fetch('/api/sessions/' + tid, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title.trim() }),
+    });
+    loadSessions();
+  }
+
+  async function deleteSession(tid) {
+    if (!confirm('确定删除这个会话？对话记录将被清除。')) return;
+    await fetch('/api/sessions/' + tid, { method: 'DELETE' });
+    if (threadId === tid) {
+      threadId = 'session_' + Date.now();
+      localStorage.setItem('lastThreadId', threadId);
+      document.getElementById('chat').innerHTML = '<div class="empty-state"><p>会话已删除</p></div>';
+    }
+    loadSessions();
+  }
+
+  async function switchSession(tid) {
+    if (isStreaming) return;
+    threadId = tid;
+    localStorage.setItem('lastThreadId', tid);
+    loadSessions();
+
+    // 加载历史消息
+    const chat = document.getElementById('chat');
+    chat.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">加载中...</div>';
+    try {
+      const resp = await fetch('/api/messages/' + tid);
+      const msgs = await resp.json();
+      chat.innerHTML = '';
+      if (msgs.length === 0) {
+        chat.innerHTML = '<div class="empty-state"><p>新会话</p></div>';
+      }
+      for (const m of msgs) {
+        if (m.role === 'human') {
+          addMessage('user', m.content);
+        } else if (m.role === 'ai') {
+          const div = addMessage('ai', '');
+          div.querySelector('.bubble-content').innerHTML = renderMarkdown(m.content);
+        }
+      }
+    } catch {
+      chat.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+    }
+    scrollDown();
+  }
+
+  // 页面加载时读取会话列表
+  loadSessions();
+  loadKBStats();
+
+  async function loadKBStats() {
+    try {
+      const resp = await fetch('/api/kb/stats');
+      const data = await resp.json();
+      document.getElementById('kb-stats').innerHTML =
+        '知识库: ' + (data.total_chunks || 0) + ' 个片段 · ' + (data.total_documents || 0) + ' 篇文档';
+    } catch {}
+  }
+
+  // 恢复上次的位置
+  try {
+    const saved = localStorage.getItem('userLocation');
+    if (saved) { userLocation = JSON.parse(saved); renderLocBar(); }
+  } catch {}
+
+  async function newSession() {
+    if (isStreaming) return;
+    try {
+      const resp = await fetch('/api/sessions', { method: 'POST' });
+      const data = await resp.json();
+      threadId = data.thread_id;
+    } catch {
+      threadId = 'session_' + Date.now();
+    }
+    localStorage.setItem('lastThreadId', threadId);
+    loadSessions();
+    const chat = document.getElementById('chat');
+    chat.innerHTML = `<div class="empty-state" id="empty-state">
+      <div class="icon"></div>
+      <p>新对话已开始</p>
+      <div class="hints">
+        <span onclick="sendHint('北京今天天气怎么样？')">查天气</span>
+        <span onclick="sendHint('计算 256 * 128')">算数学</span>
+        <span onclick="sendHint('去广州塔怎么坐地铁？')">查路线</span>
+      </div>
+    </div>`;
+  }
+
+  function sendHint(text) {
+    document.getElementById('input').value = text;
+    send();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+
+  async function getLocation() {
+    const btn = document.getElementById('loc-btn');
+
+    // 如果已定位，点击取消定位
+    if (userLocation) {
+      userLocation = null;
+      btn.classList.remove('active');
+      btn.textContent = '';
+      const bar = document.getElementById('loc-bar');
+      if (bar) bar.classList.remove('visible');
+      return;
+    }
+
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    let gotLocation = false;
+
+    // 方法1：尝试浏览器 GPS
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, timeout: 8000, maximumAge: 600000
+          });
+        });
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        let address = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        try {
+          const resp = await fetch(`/api/location?lat=${lat}&lng=${lng}`);
+          const data = await resp.json();
+          if (data.address) address = data.address;
+        } catch {}
+
+        setUserLocation(lat, lng, address);
+        gotLocation = true;
+      } catch {}
+    }
+
+    btn.disabled = false;
+
+    // 方法2：GPS 失败，弹出手动输入
+    if (!gotLocation) {
+      const manual = prompt('无法自动获取位置（桌面电脑通常没有 GPS）。\n\n请手动输入你的位置，例如：\n"广州天河区珠江新城"\n"北京市朝阳区三里屯"', '');
+      if (manual && manual.trim()) {
+        // 通过后端地理编码获取坐标
+        try {
+          const resp = await fetch('/api/location/manual?address=' + encodeURIComponent(manual.trim()));
+          const data = await resp.json();
+          if (data.error) {
+            alert('无法识别该地址: ' + data.error);
+          } else {
+            setUserLocation(data.lat, data.lng, data.address || manual.trim());
+          }
+        } catch {
+          alert('网络错误，请重试');
+        }
+      }
+    }
+
+    if (!userLocation) btn.textContent = '';
+  }
+
+  function setUserLocation(lat, lng, address) {
+    userLocation = { lat, lng, address };
+    localStorage.setItem('userLocation', JSON.stringify(userLocation));
+    renderLocBar();
+  }
+
+  function renderLocBar() {
+    if (!userLocation) return;
+    const btn = document.getElementById('loc-btn');
+    btn.classList.add('active');
+    btn.textContent = '';
+    btn.title = '已定位：' + userLocation.address + '\n点击取消定位\n点击修改位置';
+
+    // 显示定位栏
+    let bar = document.getElementById('loc-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'loc-bar';
+      bar.style.cursor = 'pointer';
+      bar.title = '点击修改位置';
+      bar.addEventListener('click', () => {
+        const newAddr = prompt('修改你的位置：', userLocation?.address || '');
+        if (newAddr && newAddr.trim()) {
+          modifyLocation(newAddr.trim());
+        }
+      });
+      const footer = document.querySelector('footer');
+      footer.parentNode.insertBefore(bar, footer);
+    }
+    bar.className = 'visible';
+    bar.textContent = '📍 当前位置：' + userLocation.address + '（点击修改）';
+  }
+
+  async function modifyLocation(address) {
+    try {
+      const resp = await fetch('/api/location/manual?address=' + encodeURIComponent(address));
+      const data = await resp.json();
+      if (data.error) {
+        alert('无法识别该地址: ' + data.error);
+      } else {
+        setUserLocation(data.lat, data.lng, data.address || address);
+      }
+    } catch {
+      alert('网络错误，请重试');
+    }
+  }
+
+  // ============ 偏好设置 ============
+  const PREF_DEFS = {
+    scene: { label: '活动场景', opts: ['户外自然', '室内文化', '不限'] },
+    pace:  { label: '旅行节奏', opts: ['悠闲慢游', '紧凑打卡', '不限'] },
+    food:  { label: '美食偏好', opts: ['地道小吃', '高端餐厅', '素食', '都行'] },
+    companion: { label: '同行人', opts: ['独自', '情侣', '亲子带娃', '朋友结伴'] },
+    budget: { label: '预算水平', opts: ['穷游省钱', '舒适中等', '奢华享受'] },
+    transport: { label: '交通方式', opts: ['地铁公交优先', '打车方便', '步行友好', '不限'] },
+    web: { label: '联网搜索', opts: ['开启', '关闭'] },
+  };
+  let userPreferences = {};
+
+  function renderPrefPanel() {
+    const rows = document.getElementById('pref-rows');
+    rows.innerHTML = '';
+    for (const [key, def] of Object.entries(PREF_DEFS)) {
+      const row = document.createElement('div');
+      row.className = 'pref-row';
+      row.innerHTML = `<label>${def.label}</label><div class="options"></div>`;
+      const optsDiv = row.querySelector('.options');
+      for (const opt of def.opts) {
+        const span = document.createElement('span');
+        span.className = 'opt' + (userPreferences[key] === opt ? ' sel' : '');
+        span.textContent = opt;
+        span.onclick = () => selectPref(key, opt, def);
+        optsDiv.appendChild(span);
+      }
+      rows.appendChild(row);
+    }
+  }
+
+  function selectPref(key, value, def) {
+    if (userPreferences[key] === value) {
+      delete userPreferences[key];
+    } else {
+      userPreferences[key] = value;
+    }
+    renderPrefPanel();
+    renderPrefTags();
+  }
+
+  function togglePrefPanel() {
+    const panel = document.getElementById('pref-panel');
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+      panel.classList.remove('open');
+    } else {
+      renderPrefPanel();
+      panel.classList.add('open');
+    }
+  }
+
+  function renderPrefTags() {
+    const dot = document.getElementById('pref-dot');
+    const container = document.getElementById('pref-tags');
+    const count = Object.keys(userPreferences).length;
+    dot.style.display = count > 0 ? 'block' : 'none';
+    container.innerHTML = '';
+    for (const [key, def] of Object.entries(PREF_DEFS)) {
+      const val = userPreferences[key];
+      if (!val) continue;
+      const tag = document.createElement('span');
+      tag.className = 'pref-tag';
+      tag.textContent = def.label + ': ' + val;
+      tag.title = '点击清除';
+      tag.onclick = () => { delete userPreferences[key]; renderPrefTags(); };
+      container.appendChild(tag);
+    }
+  }
+
+  // ============ 导航按钮注入 ============
+  function goToPlace(name) {
+    const msg = userLocation
+      ? '从我这里怎么去' + name
+      : '怎么去' + name + '？告诉我公交地铁方案';
+    document.getElementById('input').value = msg;
+    send();
+  }
+
+  async function injectMapButtons(msgDiv) {
+    const content = msgDiv.querySelector('.bubble-content');
+    if (!content) return;
+
+    let items = null;
+    if (pendingSearchPromise) {
+      try { items = await pendingSearchPromise; } catch {}
+      pendingSearchPromise = null;
+    }
+    if (!items || !items.length) return;
+
+    // 清理 AI 编造的旧链接
+    let html = content.innerHTML;
+    html = html.replace(/\{search_id:\w+\}/g, '');
+    html = html.replace(/<a[^>]*map\.baidu\.com[^>]*>.*?<\/a>/gi, '');
+    html = html.replace(/https?:\/\/map\.baidu\.com\/[^\s<>]*/gi, '');
+
+    // 在末尾追加导航列表（不跟 AI 的文本匹配较劲）
+    let navHtml = '<div style=\"margin-top:12px;padding:10px 14px;background:#f8f9fa;border-radius:10px;font-size:13px;\">';
+    navHtml += '<div style=\"font-weight:600;margin-bottom:6px;color:#666;\">导航到这些地点</div>';
+    for (const item of items) {
+      if (!item.lat || !item.lng) continue;
+      const safeName = item.name.replace(/'/g, '\\\'');
+      navHtml += '<div style=\"display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;\">';
+      navHtml += '<span>' + (item.name.length > 30 ? item.name.substring(0,30) + '...' : item.name) + '</span>';
+      navHtml += '<span class=\"map-link\" onclick=\"goToPlace(\'' + safeName + '\')\">去这里</span>';
+      navHtml += '</div>';
+    }
+    navHtml += '</div>';
+
+    content.innerHTML = html + navHtml;
+  }
+
+  // ============ 选中地名"去这里" ============
+  let gotoPending = false; // 防止点按钮时被隐藏
+
+  document.addEventListener('mouseup', (e) => {
+    setTimeout(() => {
+      // 如果刚点了按钮，不要重新判断
+      if (gotoPending) return;
+
+      const sel = window.getSelection();
+      const text = sel.toString().trim();
+      const btn = document.getElementById('goto-btn');
+
+      if (!text || text.length < 2 || text.length > 50) {
+        btn.style.display = 'none';
+        return;
+      }
+      const inAiBubble = sel.anchorNode?.parentElement?.closest('.message.ai');
+      if (!inAiBubble) {
+        btn.style.display = 'none';
+        return;
+      }
+
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      btn.style.display = 'block';
+      btn.style.left = Math.min(rect.left, window.innerWidth - 160) + 'px';
+      btn.style.top = (rect.bottom + 6) + 'px';
+      btn._selText = text; // 存下选中的文字
+      btn.textContent = '去 ' + (text.length > 15 ? text.slice(0, 15) + '...' : text);
+    }, 10);
+  });
+
+  // 点击按钮 → 记下标记防止被隐藏
+  document.getElementById('goto-btn').addEventListener('mousedown', () => {
+    gotoPending = true;
+  });
+
+  // 点击页面其他地方隐藏
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('#goto-btn')) {
+      document.getElementById('goto-btn').style.display = 'none';
+    }
+  });
+
+  function gotoSelected() {
+    const btn = document.getElementById('goto-btn');
+    const text = btn._selText || window.getSelection().toString().trim();
+    gotoPending = false;
+    btn.style.display = 'none';
+    if (!text) return;
+    const msg = userLocation
+      ? '从我这里怎么去' + text
+      : '怎么去' + text + '？告诉我公交地铁方案';
+    document.getElementById('input').value = msg;
+    send();
+  }
+
+  // ============ 状态栏 ============
+  let toolCount = 0;
+  let pendingSearchPromise = null; // 预加载搜索结果的 Promise
+
+  function updateStatusBar(label) {
+    toolCount++;
+    let bar = document.getElementById('status-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'status-bar';
+      bar.className = 'tool-indicator';
+      document.getElementById('chat').appendChild(bar);
+    }
+    bar.innerHTML = '<span class="dot"></span>' + label + ' (' + toolCount + ' 项任务)';
+    scrollDown();
+  }
+
+  function removeStatusBar() {
+    const bar = document.getElementById('status-bar');
+    if (bar) {
+      bar.querySelector('.dot')?.remove();
+      bar.innerHTML = '已完成 ' + toolCount + ' 项查询';
+      setTimeout(() => { bar.style.opacity = '0'; setTimeout(() => bar.remove(), 300); }, 2000);
+    }
+    toolCount = 0;
+  }
+
+  async function send() {
+    if (isStreaming) return;
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    removeEmptyState();
+    addMessage('user', text);
+    const aiMsg = addMessage('ai', '');
+    const bubble = aiMsg.querySelector('.bubble');
+    const content = aiMsg.querySelector('.bubble-content') || bubble;
+
+    const btn = document.getElementById('send-btn');
+    isStreaming = true;
+    btn.disabled = true;
+
+    // 构建请求体，包含位置和偏好
+    const body = { message: text, thread_id: threadId };
+    if (userLocation) {
+      body.location = { lat: userLocation.lat, lng: userLocation.lng, address: userLocation.address };
+    }
+    if (Object.keys(userPreferences).length > 0) {
+      body.preferences = userPreferences;
+    }
+
+    try {
+      const resp = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'text') {
+              content._rawText = (content._rawText || '') + data.content;
+              content.innerHTML = renderMarkdown(content._rawText);
+              scrollDown();
+            } else if (data.type === 'tool_start') {
+              const toolNames = {
+                'web_search': '搜索攻略中', 'search_transit': '规划路线中',
+                'search_driving': '规划驾车路线中', 'search_walking': '规划步行路线中',
+                'query_weather': '查询天气中', 'calculate': '计算中',
+                'forecast_weather': '查询天气预报中', 'write_file': '保存文件中'
+              };
+              updateStatusBar(toolNames[data.tool] || data.tool);
+              if (data.tool === 'search_places' || data.tool === 'search_nearby') {
+                pendingSearchPromise = null;
+              }
+            } else if (data.type === 'search_ready') {
+              pendingSearchPromise = fetch('/api/search-results/' + data.search_id)
+                .then(r => r.json());
+            } else if (data.type === 'done') {
+              removeStatusBar();
+              injectMapButtons(aiMsg);
+              loadSessions();
+            } else if (data.type === 'error') {
+              content._rawText = (content._rawText || '') + '\n\n[错误: ' + data.error + ']';
+              content.innerHTML = renderMarkdown(content._rawText);
+            }
+          } catch {}
+        }
+      }
+    } catch (e) {
+      content._rawText = (content._rawText || '') + '\n\n[连接失败: ' + e.message + ']';
+      content.innerHTML = renderMarkdown(content._rawText);
+    } finally {
+      isStreaming = false;
+      btn.disabled = false;
+      document.getElementById('input').focus();
+    }
+  }
+
+  function addMessage(role, text) {
+    const chat = document.getElementById('chat');
+    const div = document.createElement('div');
+    div.className = 'message ' + role;
+    const bubbleHtml = role === 'ai'
+      ? `<div class="bubble" style="position:relative;">
+           <button class="copy-btn" onclick="copyBubble(this)" title="复制">复制</button>
+           <span class="bubble-content">${escapeHtml(text)}</span>
+         </div>`
+      : `<div class="bubble">${escapeHtml(text)}</div>`;
+    div.innerHTML = `
+      <div class="avatar">${role === 'user' ? '' : ''}</div>
+      ${bubbleHtml}
+    `;
+    chat.appendChild(div);
+    scrollDown();
+    return div;
+  }
+
+  async function copyBubble(btn) {
+    const parent = btn.closest('.bubble');
+    const content = parent.querySelector('.bubble-content');
+    // 优先取流式累积的原始 Markdown，其次取内容区纯文本
+    const text = (content?._rawText) || content?.textContent || parent.textContent?.replace(/^复制/, '').trim() || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 2000);
+    } catch {
+      btn.textContent = '失败';
+      setTimeout(() => { btn.textContent = '复制'; }, 2000);
+    }
+  }
+
+  function removeEmptyState() {
+    const es = document.getElementById('empty-state');
+    if (es) es.remove();
+  }
+
+  function scrollDown() {
+    const chat = document.getElementById('chat');
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderMarkdown(text) {
+    // Simple markdown → HTML for streaming
+    let html = escapeHtml(text);
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // ### header
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    // ## header
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    // Horizontal rule
+    html = html.replace(/^---$/gm, '<hr>');
+    // Links: [text](url) → <a>
+    html = html.replace(/\[(.+?)\]\((https?:\/\/.+?)\)/g, '<a href="$2" target="_blank" class="map-link">$1</a>');
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Unordered list items
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    // Wrap consecutive <li> in <ul>
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+    // Blockquote
+    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+    // Double newline → paragraph break
+    html = html.replace(/\n\n/g, '<br><br>');
+    // Single newline → <br>
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# 环境变量（包含 API Key）
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+
+# 输出文件
+output/
+
+# 对话历史数据库
+checkpoints.db
+sessions.db
+*.db
+*.db-shm
+*.db-wal
+.claude/
+search_cache.json
+
+# 知识库向量数据
+kb_data/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 简历文档
+resume*.md

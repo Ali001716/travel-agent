@@ -1,0 +1,27 @@
+{
+  "weather": {
+    "command": "python",
+    "args": ["weather_server.py"],
+    "transport": "stdio"
+  },
+  "write": {
+    "command": "python",
+    "args": ["write_server.py"],
+    "transport": "stdio"
+  },
+  "calculator": {
+    "command": "python",
+    "args": ["calculator_server.py"],
+    "transport": "stdio"
+  },
+  "transit": {
+    "command": "python",
+    "args": ["transit_server.py"],
+    "transport": "stdio"
+  },
+  "search": {
+    "command": "python",
+    "args": ["search_server.py"],
+    "transport": "stdio"
+  }
+}
