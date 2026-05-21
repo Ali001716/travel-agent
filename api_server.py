@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import socket
 import sqlite3
 import time
 from contextlib import asynccontextmanager
@@ -342,6 +343,19 @@ setInterval(load, 3000);
 </html>""")
 
 
+@app.get("/api/lan-ip")
+async def get_lan_ip():
+    """返回本机 LAN IP，供前端生成二维码"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return {"lan_ip": ip}
+    except Exception:
+        return {"lan_ip": ""}
+
+
 @app.get("/api/health")
 async def health():
     return {
@@ -550,5 +564,16 @@ async def chat_stream(request: ChatRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("打开浏览器访问 http://localhost:8000")
+    # 获取本机 LAN IP
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        lan_ip = s.getsockname()[0]
+        s.close()
+        logger.info("电脑访问: http://localhost:8000")
+        logger.info("手机访问: http://%s:8000 （扫描页面底部二维码）", lan_ip)
+    except Exception:
+        lan_ip = "获取失败"
+        logger.info("电脑访问: http://localhost:8000")
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
