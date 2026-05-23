@@ -164,9 +164,9 @@ async def add_knowledge(title: str, content: str) -> str:
 @mcp.tool()
 async def search_skills(query: str) -> str:
     """
-    搜索本地技能库（之前成功规划过的行程）。优先使用，命中后直接复用，避免重复联网搜索。
+    搜索本地技能库（之前成功规划过的行程）。优先使用，命中后直接复用策略+已验证路线。
     :param query: 用户原始问题（如"成都3日游"）
-    :return: 匹配的行程技能
+    :return: 匹配的结构化技能（含策略+已验证路线）
     """
     try:
         results = sl_search(query, top_k=3)
@@ -175,10 +175,18 @@ async def search_skills(query: str) -> str:
 
         lines = [f"技能库找到 {len(results)} 条相似行程:\n"]
         for i, r in enumerate(results, 1):
-            lines.append(f"技能{i}：{r['query']} (相关度: {r['score']})")
-            lines.append(f"创建于: {r['created_at']}")
-            lines.append(f"行程:\n{r['itinerary'][:2000]}\n")
+            s = r.get("strategy", {})
+            lines.append(f"技能{i}：{r['query']} (相关度: {r['score']} | 城市: {r.get('city', '?')} | {r.get('days', 1)}天)")
+            lines.append(f"访问{r.get('visit_count', 1)}次 | {r.get('created_at', '')}")
+            if s.get("places"):
+                lines.append(f"已验证景点: {', '.join(s['places'][:10])}")
+            if s.get("proven_routes"):
+                routes = [f"{p['from']}→{p['to']}" for p in s["proven_routes"][:5]]
+                lines.append(f"已验证路线: {', '.join(routes)}")
+            lines.append(f"参考行程:\n{r['itinerary'][:1500]}\n")
         return "\n".join(lines)
+    except Exception as e:
+        return f"搜索技能库出错: {str(e)}"
     except Exception as e:
         return f"搜索技能库出错: {str(e)}"
 
