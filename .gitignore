@@ -27,6 +27,9 @@ kb_data/
 # 技能库数据
 skill_data/
 
+# code_run 沙箱
+sandbox/
+
 # Docker
 Dockerfile
 docker-compose.yml
