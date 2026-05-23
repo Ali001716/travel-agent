@@ -1,0 +1,104 @@
+[
+  {
+    "id": "weather_basic",
+    "category": "天气查询",
+    "message": "北京今天天气怎么样",
+    "expect_tools": ["query_weather"],
+    "expect_keywords": ["温度", "°C"],
+    "timeout_s": 30
+  },
+  {
+    "id": "weather_forecast",
+    "category": "天气预报",
+    "message": "成都未来3天天气",
+    "expect_tools": ["forecast_weather"],
+    "expect_keywords": ["°C"],
+    "timeout_s": 30
+  },
+  {
+    "id": "transit_simple",
+    "category": "路线查询",
+    "message": "从广州塔到体育西路怎么坐地铁",
+    "expect_tools": ["search_transit"],
+    "expect_keywords": ["站", "分钟"],
+    "timeout_s": 45,
+    "preferences": {"transport": "地铁公交优先"}
+  },
+  {
+    "id": "poi_search",
+    "category": "POI搜索",
+    "message": "广州有什么密室逃脱",
+    "expect_tools": ["search_places"],
+    "expect_keywords": ["密室逃脱"],
+    "timeout_s": 45
+  },
+  {
+    "id": "math",
+    "category": "数学计算",
+    "message": "计算 456 * 789 等于多少？用计算工具",
+    "expect_tools": ["calculate"],
+    "expect_keywords": ["359784"],
+    "timeout_s": 30
+  },
+  {
+    "id": "kb_search",
+    "category": "知识库检索",
+    "message": "广州塔有多高",
+    "expect_tools": ["search_knowledge"],
+    "expect_keywords": ["600"],
+    "timeout_s": 45,
+    "preferences": {"web": "关闭"}
+  },
+  {
+    "id": "web_search",
+    "category": "联网搜索",
+    "message": "2024年国庆节放假安排",
+    "expect_tools": ["web_search"],
+    "expect_keywords": ["放假", "国庆"],
+    "timeout_s": 45
+  },
+  {
+    "id": "location_transit",
+    "category": "定位+路线",
+    "message": "从我这去北京路步行街怎么走",
+    "expect_tools": ["search_transit"],
+    "expect_keywords": ["站", "分钟"],
+    "timeout_s": 45,
+    "location": {"lat": 23.119, "lng": 113.334, "address": "广州珠江新城"}
+  },
+  {
+    "id": "travel_plan",
+    "category": "旅游规划",
+    "message": "帮我规划一个简单的广州1日游",
+    "expect_tools": ["web_search", "search_transit"],
+    "expect_keywords": ["广州"],
+    "timeout_s": 120,
+    "preferences": {"pace": "紧凑打卡", "scene": "室内文化"}
+  },
+  {
+    "id": "no_web_kb_only",
+    "category": "离线知识库",
+    "message": "广州塔附近有什么好吃的",
+    "expect_tools": ["search_knowledge"],
+    "expect_keywords": [],
+    "timeout_s": 45,
+    "preferences": {"web": "关闭"}
+  },
+  {
+    "id": "transit_with_location",
+    "category": "带定位路线",
+    "message": "去最近的星巴克怎么走",
+    "expect_tools": ["search_nearby"],
+    "expect_keywords": ["星巴克"],
+    "timeout_s": 60,
+    "location": {"lat": 23.119, "lng": 113.334, "address": "广州珠江新城"}
+  },
+  {
+    "id": "multi_mode_compare",
+    "category": "多模式对比",
+    "message": "从北京路到广州塔怎么去最快",
+    "expect_tools": ["search_transit", "search_driving"],
+    "expect_keywords": ["分钟"],
+    "timeout_s": 60
+  }
+]

@@ -1,0 +1,369 @@
+{
+  "meta": {
+    "timestamp": "2026-05-23T10:17:47.356091",
+    "total_cases": 12,
+    "passed": 10,
+    "failed": 2,
+    "pass_rate": "83.3%"
+  },
+  "metrics": {
+    "tool_accuracy": "83.3%",
+    "keyword_accuracy": "91.7%",
+    "first_token_avg_ms": 2237,
+    "first_token_min_ms": 685,
+    "first_token_max_ms": 5709,
+    "total_elapsed_avg_s": 9.9,
+    "total_elapsed_min_s": 0.8,
+    "total_elapsed_max_s": 52.93,
+    "error_rate": "0.0%"
+  },
+  "by_category": {
+    "天气查询": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 5.3
+    },
+    "天气预报": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 6.7
+    },
+    "路线查询": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 4.5
+    },
+    "POI搜索": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 14.4
+    },
+    "数学计算": {
+      "total": 1,
+      "passed": 0,
+      "avg_elapsed_s": 0.8
+    },
+    "知识库检索": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 3.4
+    },
+    "联网搜索": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 4.8
+    },
+    "定位+路线": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 5.1
+    },
+    "旅游规划": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 52.9
+    },
+    "离线知识库": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 9.0
+    },
+    "带定位路线": {
+      "total": 1,
+      "passed": 0,
+      "avg_elapsed_s": 7.3
+    },
+    "多模式对比": {
+      "total": 1,
+      "passed": 1,
+      "avg_elapsed_s": 5.2
+    }
+  },
+  "cases": [
+    {
+      "id": "weather_basic",
+      "category": "天气查询",
+      "elapsed_s": 5.27,
+      "first_token_ms": 856,
+      "tools_called": [
+        "query_weather"
+      ],
+      "tools_expected": [
+        "query_weather"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "温度",
+        "°C"
+      ],
+      "keywords_hit": [
+        "温度",
+        "°C"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "weather_forecast",
+      "category": "天气预报",
+      "elapsed_s": 6.69,
+      "first_token_ms": 5709,
+      "tools_called": [
+        "forecast_weather"
+      ],
+      "tools_expected": [
+        "forecast_weather"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "°C"
+      ],
+      "keywords_hit": [
+        "°C"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "transit_simple",
+      "category": "路线查询",
+      "elapsed_s": 4.49,
+      "first_token_ms": 917,
+      "tools_called": [
+        "search_transit"
+      ],
+      "tools_expected": [
+        "search_transit"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "站",
+        "分钟"
+      ],
+      "keywords_hit": [
+        "站",
+        "分钟"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "poi_search",
+      "category": "POI搜索",
+      "elapsed_s": 14.44,
+      "first_token_ms": 726,
+      "tools_called": [
+        "search_knowledge",
+        "search_places",
+        "add_knowledge"
+      ],
+      "tools_expected": [
+        "search_places"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "密室逃脱"
+      ],
+      "keywords_hit": [
+        "密室逃脱"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "math",
+      "category": "数学计算",
+      "elapsed_s": 0.8,
+      "first_token_ms": 685,
+      "tools_called": [],
+      "tools_expected": [
+        "calculate"
+      ],
+      "tools_ok": false,
+      "keywords_expected": [
+        "359784"
+      ],
+      "keywords_hit": [],
+      "keywords_ok": false,
+      "passed": false,
+      "error": null
+    },
+    {
+      "id": "kb_search",
+      "category": "知识库检索",
+      "elapsed_s": 3.44,
+      "first_token_ms": 3213,
+      "tools_called": [
+        "search_knowledge"
+      ],
+      "tools_expected": [
+        "search_knowledge"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "600"
+      ],
+      "keywords_hit": [
+        "600"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "web_search",
+      "category": "联网搜索",
+      "elapsed_s": 4.8,
+      "first_token_ms": 1101,
+      "tools_called": [
+        "web_search"
+      ],
+      "tools_expected": [
+        "web_search"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "放假",
+        "国庆"
+      ],
+      "keywords_hit": [
+        "放假",
+        "国庆"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "location_transit",
+      "category": "定位+路线",
+      "elapsed_s": 5.1,
+      "first_token_ms": 4465,
+      "tools_called": [
+        "search_transit"
+      ],
+      "tools_expected": [
+        "search_transit"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "站",
+        "分钟"
+      ],
+      "keywords_hit": [
+        "站",
+        "分钟"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "travel_plan",
+      "category": "旅游规划",
+      "elapsed_s": 52.93,
+      "first_token_ms": 724,
+      "tools_called": [
+        "search_knowledge",
+        "web_search",
+        "fetch_url",
+        "fetch_url",
+        "forecast_weather",
+        "search_places",
+        "search_places",
+        "search_places",
+        "search_places",
+        "search_transit",
+        "search_transit",
+        "search_transit",
+        "search_places",
+        "add_knowledge",
+        "write_file"
+      ],
+      "tools_expected": [
+        "web_search",
+        "search_transit"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "广州"
+      ],
+      "keywords_hit": [
+        "广州"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "no_web_kb_only",
+      "category": "离线知识库",
+      "elapsed_s": 8.98,
+      "first_token_ms": 979,
+      "tools_called": [
+        "search_knowledge",
+        "search_places"
+      ],
+      "tools_expected": [
+        "search_knowledge"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [],
+      "keywords_hit": [],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "transit_with_location",
+      "category": "带定位路线",
+      "elapsed_s": 7.28,
+      "first_token_ms": 3078,
+      "tools_called": [
+        "search_nearby",
+        "search_walking"
+      ],
+      "tools_expected": [
+        "search_places",
+        "search_transit"
+      ],
+      "tools_ok": false,
+      "keywords_expected": [
+        "星巴克"
+      ],
+      "keywords_hit": [
+        "星巴克"
+      ],
+      "keywords_ok": true,
+      "passed": false,
+      "error": null
+    },
+    {
+      "id": "multi_mode_compare",
+      "category": "多模式对比",
+      "elapsed_s": 5.17,
+      "first_token_ms": 4395,
+      "tools_called": [
+        "search_transit"
+      ],
+      "tools_expected": [
+        "search_transit",
+        "search_driving"
+      ],
+      "tools_ok": true,
+      "keywords_expected": [
+        "分钟"
+      ],
+      "keywords_hit": [
+        "分钟"
+      ],
+      "keywords_ok": true,
+      "passed": true,
+      "error": null
+    }
+  ]
+}
