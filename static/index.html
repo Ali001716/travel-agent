@@ -355,13 +355,14 @@
 
 <header>
   <button id="menu-btn" onclick="toggleSidebar()">☰</button>
-  <h1>AI Assistant <span style="font-size:11px;color:#999;">v25</span></h1>
+  <h1>AI Assistant <span style="font-size:11px;color:#999;">v26</span></h1>
   <div style="display:flex;gap:8px;">
     <button onclick="togglePrefPanel()" id="pref-btn" style="position:relative;">
       偏好 <span id="pref-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;background:#ef4444;border-radius:50%;"></span>
     </button>
     <button onclick="newSession()">新对话</button>
     <a href="/dashboard" target="_blank" style="font-size:13px;color:var(--text-secondary);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;">监控</a>
+    <button onclick="document.getElementById('qr-box').style.display='block'" title="显示二维码" style="font-size:13px;color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;background:none;">📱</button>
   </div>
 </header>
 
@@ -399,10 +400,11 @@
   </div>
 </footer>
 
-<div id="qr-box" style="text-align:center;padding:10px 0 6px;border-top:1px solid var(--border);background:var(--surface);display:none;">
+<div id="qr-box" style="text-align:center;padding:10px 0 6px;border-top:1px solid var(--border);background:var(--surface);display:none;position:relative;">
+  <button onclick="document.getElementById('qr-box').style.display='none'" style="position:absolute;top:4px;right:8px;background:none;border:none;font-size:14px;cursor:pointer;color:var(--text-secondary);">✕</button>
   <div id="qr-code" style="display:inline-block;"></div>
   <div id="qr-url" style="font-size:12px;color:var(--text-secondary);margin-top:4px;"></div>
-  <div style="font-size:11px;color:var(--muted);">手机扫码即可使用</div>
+  <div style="font-size:11px;color:var(--muted);">手机扫码即可使用 · <a href="#" onclick="document.getElementById('qr-box').style.display='none';return false" style="color:var(--primary);">收起</a></div>
 </div>
 
 </div><!-- #main -->
