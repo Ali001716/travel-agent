@@ -492,6 +492,51 @@ PREF_LABELS = {
 }
 
 
+def _smart_truncate(text: str, max_chars: int = 250) -> str:
+    """TF-IDF 句子级摘要：保留得分最高的句子，而非简单截断"""
+    if len(text) <= max_chars:
+        return text
+
+    # 按句号、换行拆分句子
+    sentences = []
+    for part in text.replace("\n", "。").split("。"):
+        s = part.strip()
+        if s and len(s) > 2:
+            sentences.append(s)
+
+    if len(sentences) <= 3:
+        return text[:max_chars] + "...[已截断]"
+
+    try:
+        import jieba
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        doc = [" ".join(jieba.cut(s)) for s in sentences]
+        vec = TfidfVectorizer()
+        tfidf = vec.fit_transform(doc)
+        scores = tfidf.sum(axis=1).A1  # 每句的总 TF-IDF 分
+    except Exception:
+        # TF-IDF 失败则退化为头尾保留
+        return text[:max_chars // 2] + "\n...[已截断]...\n" + text[-max_chars // 4:]
+
+    # 按得分排序，保留高分句直到接近 max_chars
+    ranked = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)
+    kept = []
+    total = 0
+    for idx, score in ranked:
+        s = sentences[idx]
+        if total + len(s) > max_chars and kept:
+            continue
+        kept.append((idx, s))
+        total += len(s)
+
+    # 按原文顺序输出
+    kept.sort(key=lambda x: x[0])
+    result = "。".join(s for _, s in kept) + "。"
+    if total < len(text):
+        result += "\n...[已截断" + str(len(sentences) - len(kept)) + "句]..."
+    return result
+
+
 async def compress_context(thread_id: str):
     """压缩旧工具消息：保留最近 5 个工具结果原文，更早的截断到 200 字"""
     try:
@@ -515,7 +560,7 @@ async def compress_context(thread_id: str):
                 if tool_count > 8 and len(content) > 200:
                     from langchain_core.messages import ToolMessage
                     msgs[i] = ToolMessage(
-                        content=content[:200] + "...[已截断]",
+                        content=_smart_truncate(content, 250),
                         tool_call_id=getattr(m, "tool_call_id", ""),
                     )
                     compressed += 1
