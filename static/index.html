@@ -355,7 +355,7 @@
 
 <header>
   <button id="menu-btn" onclick="toggleSidebar()">☰</button>
-  <h1>AI Assistant <span style="font-size:11px;color:#999;">v27</span></h1>
+  <h1>AI Assistant <span style="font-size:11px;color:#999;">v28</span></h1>
   <div style="display:flex;gap:8px;">
     <button onclick="togglePrefPanel()" id="pref-btn" style="position:relative;">
       偏好 <span id="pref-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;background:#ef4444;border-radius:50%;"></span>
@@ -541,18 +541,115 @@
     }
   }
 
-  // 自动保存行程为技能
-  function autoSaveSkill(msgDiv, userText) {
+  // 行程确认 + 提取景点
+  async function confirmTrip(msgDiv, userText) {
     const content = msgDiv.querySelector('.bubble-content');
-    if (!content) return;
     const text = (content._rawText || content.textContent || '');
-    // 判断是否为旅游规划（包含 Day 或 日游）
-    if (/(Day\s*\d|日游|行程|旅游规划)/.test(text) && text.length > 500) {
-      fetch('/api/skills', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userText, itinerary: text.substring(0, 8000) }),
-      }).catch(() => {});
+    if (text.length < 200) return;
+
+    // 保存技能
+    await fetch('/api/skills', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: userText, itinerary: text.substring(0, 8000) }),
+    });
+
+    // 从输出中提取地名（匹配 **地点** 或 bold 文本）
+    const places = [];
+    const placeRegex = /\*\*(.+?)\*\*/g;
+    let m;
+    while ((m = placeRegex.exec(text)) !== null) {
+      const name = m[1].trim();
+      // 排除时间、日期、非地名
+      if (name.length >= 3 && !/^\d|分钟|小时|站|号线|号线|号线/.test(name)) {
+        places.push(name);
+      }
     }
+
+    // 批量标记为去过
+    for (const p of [...new Set(places)].slice(0, 10)) {
+      await fetch('/api/history', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ place_name: p }),
+      });
+    }
+
+    showRatingModal(places.slice(0, 10));
+    loadSessions();
+  }
+
+  // 评分弹窗
+  const RATING_DIMS = [
+    { key: 'cost', label: '性价比', emoji: '💰' },
+    { key: 'crowd', label: '不拥挤', emoji: '👥' },
+    { key: 'photo', label: '出片指数', emoji: '📷' },
+    { key: 'fun', label: '趣味性', emoji: '🎯' },
+    { key: 'match', label: '符合预期', emoji: '✅' },
+    { key: 'overall', label: '推荐指数', emoji: '⭐' },
+  ];
+
+  function showRatingModal(places) {
+    if (!places.length) return;
+    let idx = 0;
+    const currentPlace = () => places[idx];
+
+    const modal = document.createElement('div');
+    modal.id = 'rating-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = '<div id="rating-card" style="background:#fff;border-radius:16px;padding:24px;width:340px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,0.15);"></div>';
+    document.body.appendChild(modal);
+
+    function renderCard() {
+      const card = document.getElementById('rating-card');
+      card.innerHTML = `
+        <h3 style="margin:0 0 4px;">${idx+1}/${places.length} ${currentPlace()}</h3>
+        <p style="font-size:12px;color:#999;margin:0 0 12px;">点击星星评分，留空可跳过</p>
+        ${RATING_DIMS.map(d => `
+          <div style="margin-bottom:8px;">
+            <span style="font-size:13px;">${d.emoji} ${d.label}</span>
+            <div id="stars-${d.key}" style="display:inline-flex;gap:4px;margin-left:8px;">
+              ${[1,2,3,4,5].map(n => `<span onclick="setRating('${d.key}',${n})" data-sel="0" style="font-size:18px;cursor:pointer;color:#ddd;">★</span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          ${idx > 0 ? '<button onclick="prevPlace()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:#fff;">上一个</button>' : ''}
+          <button onclick="${idx < places.length-1 ? 'nextPlace()' : 'submitRatings()'}" style="flex:1;padding:8px;border:none;border-radius:8px;cursor:pointer;background:var(--primary);color:#fff;">
+            ${idx < places.length-1 ? '下一个' : '完成'}
+          </button>
+        </div>`;
+    }
+
+    const ratings = {};
+    window.setRating = (key, val) => {
+      ratings[key] = val;
+      document.querySelectorAll(`#stars-${key} span`).forEach((s, i) => {
+        s.style.color = i < val ? '#f59e0b' : '#ddd';
+      });
+    };
+    window.nextPlace = () => { submitCurrent(); idx++; renderCard(); };
+    window.prevPlace = () => { idx--; renderCard(); };
+    window.submitRatings = () => { submitCurrent(); modal.remove(); loadSessions(); };
+
+    async function submitCurrent() {
+      const name = currentPlace();
+      const allEmpty = RATING_DIMS.every(d => !ratings[d.key]);
+      if (allEmpty) return;
+      // Find place id from history
+      try {
+        const resp = await fetch('/api/history');
+        const history = await resp.json();
+        const entry = history.find(h => h.place_name === name);
+        if (entry) {
+          await fetch('/api/history/rate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: entry.id, ...ratings }),
+          });
+        }
+      } catch {}
+      for (const k of Object.keys(ratings)) delete ratings[k];
+    }
+
+    renderCard();
   }
 
   // 恢复上次的位置
@@ -816,6 +913,9 @@
       navHtml += '</div>';
     }
     navHtml += '</div>';
+    navHtml += '<div style="margin-top:8px;">';
+    navHtml += '<button onclick="let m=this.closest(\'.message.ai\');confirmTrip(m,m._userText||\'\')" style="padding:6px 12px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer;font-size:13px;color:#166534;">✅ 我去过了，保存并评价</button>';
+    navHtml += '</div>';
 
     content.innerHTML = html + navHtml;
   }
@@ -916,6 +1016,7 @@
     removeEmptyState();
     addMessage('user', text);
     const aiMsg = addMessage('ai', '');
+    aiMsg._userText = text;
     const bubble = aiMsg.querySelector('.bubble');
     const content = aiMsg.querySelector('.bubble-content') || bubble;
 
@@ -974,7 +1075,6 @@
               injectMapButtons(aiMsg);
               loadSessions();
               loadKBStats();
-              autoSaveSkill(aiMsg, text);
             } else if (data.type === 'error') {
               content._rawText = (content._rawText || '') + '\n\n[错误: ' + data.error + ']';
               content.innerHTML = renderMarkdown(content._rawText);

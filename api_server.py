@@ -89,9 +89,26 @@ async def lifespan(app: FastAPI):
         "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "  thread_id TEXT,"
         "  place_name TEXT,"
-        "  visit_date TEXT"
+        "  visit_date TEXT,"
+        "  rating_cost INTEGER DEFAULT 0,"
+        "  rating_crowd INTEGER DEFAULT 0,"
+        "  rating_photo INTEGER DEFAULT 0,"
+        "  rating_fun INTEGER DEFAULT 0,"
+        "  rating_match INTEGER DEFAULT 0,"
+        "  rating_overall INTEGER DEFAULT 0,"
+        "  rated_at TEXT"
         ")"
     )
+    # 迁移旧表
+    for col in ["rating_cost", "rating_crowd", "rating_photo", "rating_fun", "rating_match", "rating_overall", "rated_at"]:
+        try:
+            session_db.execute(f"ALTER TABLE visited_places ADD COLUMN {col} INTEGER DEFAULT 0")
+        except Exception:
+            pass
+    try:
+        session_db.execute("ALTER TABLE visited_places ADD COLUMN rated_at TEXT")
+    except Exception:
+        pass
     session_db.commit()
 
     try:
@@ -250,9 +267,9 @@ async def delete_session(thread_id: str):
 async def get_history():
     """获取去过的地方列表"""
     rows = session_db.execute(
-        "SELECT id, place_name, visit_date FROM visited_places ORDER BY visit_date DESC"
+        "SELECT id, place_name, visit_date, rating_overall FROM visited_places ORDER BY visit_date DESC"
     ).fetchall()
-    return [{"id": r[0], "place_name": r[1], "visit_date": r[2]} for r in rows]
+    return [{"id": r[0], "place_name": r[1], "visit_date": r[2], "rating": r[3]} for r in rows]
 
 
 @app.post("/api/history")
@@ -265,6 +282,27 @@ async def add_history(req: Request):
     session_db.execute(
         "INSERT INTO visited_places (thread_id, place_name, visit_date) VALUES (?, ?, ?)",
         ("default", name, now),
+    )
+    session_db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/history/rate")
+async def rate_place(req: Request):
+    """多维评分"""
+    body = await req.json()
+    place_id = body.get("id")
+    if not place_id:
+        return {"error": "缺少 id"}
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    session_db.execute(
+        "UPDATE visited_places SET rating_cost=?, rating_crowd=?, rating_photo=?, "
+        "rating_fun=?, rating_match=?, rating_overall=?, rated_at=? WHERE id=?",
+        (
+            body.get("cost", 0), body.get("crowd", 0), body.get("photo", 0),
+            body.get("fun", 0), body.get("match", 0), body.get("overall", 0),
+            now, place_id,
+        ),
     )
     session_db.commit()
     return {"ok": True}
@@ -449,14 +487,26 @@ def build_message(message: str, location: LocationInfo | None, preferences: dict
         if pref_texts:
             parts.append("[用户偏好: " + "，".join(pref_texts) + "]")
 
-    # 注入已去过的地方
+    # 注入已去过的地方（按评分分档）
     try:
         rows = session_db.execute(
-            "SELECT DISTINCT place_name FROM visited_places"
+            "SELECT place_name, rating_overall FROM visited_places"
         ).fetchall()
         if rows:
-            visited = [r[0] for r in rows][:20]
-            parts.append("[已去过的地方: " + "，".join(visited) + " — 规划时默认排除，除非用户要求再去]")
+            loved = [r[0] for r in rows if r[1] and r[1] >= 4]
+            normal = [r[0] for r in rows if r[1] and 2 <= r[1] <= 3]
+            disliked = [r[0] for r in rows if r[1] and r[1] < 2]
+            unrated = [r[0] for r in rows if not r[1]]
+
+            hints = []
+            if loved:
+                hints.append(f"[用户喜爱的景点（可再次推荐）: {', '.join(loved[:8])}]")
+            if unrated or normal:
+                skip = (unrated + normal)[:15]
+                hints.append(f"[默认排除的景点: {', '.join(skip)}]")
+            if disliked:
+                hints.append(f"[用户不喜欢的景点（严格排除）: {', '.join(disliked[:8])}]")
+            parts.extend(hints)
     except Exception:
         pass
 

@@ -41,7 +41,7 @@
 6. forecast_weather 查天气
 7. 景点间用 search_transit / search_walking 查交通
 8. write_file 保存行程
-9. **调用 add_skill 将行程保存到技能库**（query 用用户的原始提问，itinerary 用完整输出）
+9. 输出完成后，系统会自动提示用户确认并评价
 
 ### 交通规划规则
 - 消息中如有"[用户当前位置]"，第一天出发地用这个位置
