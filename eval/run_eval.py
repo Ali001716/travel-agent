@@ -183,10 +183,10 @@ async def main():
     # 运行
     results = []
     for i, case in enumerate(cases, 1):
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(trust_env=False) as client:
             print(f"  [{i}/{len(cases)}] {case['id']:<25} ", end="", flush=True)
             result = await run_case(client, case)
-            status = "✓" if result["passed"] else "✗"
+            status = "PASS" if result["passed"] else "FAIL"
             print(f"{status}  {result['elapsed_s']}s  token@{result['first_token_ms']}ms")
             if result["error"]:
                 print(f"       ERROR: {result['error'][:100]}")

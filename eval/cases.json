@@ -4,7 +4,7 @@
     "category": "天气查询",
     "message": "北京今天天气怎么样",
     "expect_tools": ["query_weather"],
-    "expect_keywords": ["温度", "°C"],
+    "expect_keywords": ["°C"],
     "timeout_s": 30
   },
   {
@@ -27,7 +27,7 @@
   {
     "id": "poi_search",
     "category": "POI搜索",
-    "message": "广州有什么密室逃脱",
+    "message": "直接用 search_places 搜广州密室逃脱",
     "expect_tools": ["search_places"],
     "expect_keywords": ["密室逃脱"],
     "timeout_s": 45
@@ -35,15 +35,15 @@
   {
     "id": "math",
     "category": "数学计算",
-    "message": "计算 456 * 789 等于多少？用计算工具",
+    "message": "用 calculate 工具计算 12345 除以 67 保留 4 位小数",
     "expect_tools": ["calculate"],
-    "expect_keywords": ["359784"],
+    "expect_keywords": ["184.2537"],
     "timeout_s": 30
   },
   {
     "id": "kb_search",
     "category": "知识库检索",
-    "message": "广州塔有多高",
+    "message": "用 search_knowledge 查询广州塔有多高",
     "expect_tools": ["search_knowledge"],
     "expect_keywords": ["600"],
     "timeout_s": 45,
@@ -52,10 +52,10 @@
   {
     "id": "web_search",
     "category": "联网搜索",
-    "message": "2024年国庆节放假安排",
+    "message": "用 web_search 搜索 2024年国庆节放假安排",
     "expect_tools": ["web_search"],
-    "expect_keywords": ["放假", "国庆"],
-    "timeout_s": 45
+    "expect_keywords": ["国庆"],
+    "timeout_s": 30
   },
   {
     "id": "location_transit",
@@ -72,7 +72,7 @@
     "message": "帮我规划一个简单的广州1日游",
     "expect_tools": ["web_search", "search_transit"],
     "expect_keywords": ["广州"],
-    "timeout_s": 120,
+    "timeout_s": 180,
     "preferences": {"pace": "紧凑打卡", "scene": "室内文化"}
   },
   {

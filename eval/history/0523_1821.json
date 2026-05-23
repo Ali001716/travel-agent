@@ -1,93 +1,92 @@
 {
   "meta": {
-    "timestamp": "2026-05-23T18:46:43.684987",
-    "label": "--save-baseline",
+    "timestamp": "2026-05-23T18:27:46.031682",
+    "label": "0523_1821",
     "total_cases": 12,
-    "passed": 11,
-    "failed": 1,
-    "pass_rate": "91.7%"
+    "passed": 10,
+    "failed": 2,
+    "pass_rate": "83.3%"
   },
   "metrics": {
-    "tool_accuracy": "100.0%",
-    "keyword_accuracy": "100.0%",
-    "first_token_avg_ms": 1188,
-    "first_token_min_ms": 681,
-    "first_token_max_ms": 2871,
-    "total_elapsed_avg_s": 25.0,
-    "total_elapsed_min_s": 2.38,
-    "total_elapsed_max_s": 65.34,
-    "error_rate": "8.3%"
+    "tool_accuracy": "91.7%",
+    "keyword_accuracy": "91.7%",
+    "first_token_avg_ms": 941,
+    "first_token_min_ms": 819,
+    "first_token_max_ms": 1058,
+    "total_elapsed_avg_s": 30.0,
+    "total_elapsed_min_s": 4.66,
+    "total_elapsed_max_s": 94.54,
+    "error_rate": "0.0%"
   },
   "by_category": {
     "天气查询": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 9.9
+      "avg_elapsed_s": 6.0
     },
     "天气预报": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 61.2
+      "avg_elapsed_s": 90.7
     },
     "路线查询": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 6.1
+      "avg_elapsed_s": 8.0
     },
     "POI搜索": {
       "total": 1,
-      "passed": 1,
-      "avg_elapsed_s": 57.3
+      "passed": 0,
+      "avg_elapsed_s": 33.7
     },
     "数学计算": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 2.4
+      "avg_elapsed_s": 4.7
     },
     "知识库检索": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 5.9
+      "avg_elapsed_s": 6.1
     },
     "联网搜索": {
       "total": 1,
       "passed": 0,
-      "avg_elapsed_s": 65.3
+      "avg_elapsed_s": 94.5
     },
     "定位+路线": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 8.3
+      "avg_elapsed_s": 8.4
     },
     "旅游规划": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 53.5
+      "avg_elapsed_s": 60.9
     },
     "离线知识库": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 14.0
+      "avg_elapsed_s": 26.8
     },
     "带定位路线": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 9.1
+      "avg_elapsed_s": 11.6
     },
     "多模式对比": {
       "total": 1,
       "passed": 1,
-      "avg_elapsed_s": 6.5
+      "avg_elapsed_s": 8.3
     }
   },
   "cases": [
     {
       "id": "weather_basic",
       "category": "天气查询",
-      "elapsed_s": 9.95,
-      "first_token_ms": 896,
+      "elapsed_s": 6.0,
+      "first_token_ms": 819,
       "tools_called": [
-        "search_skills",
         "query_weather"
       ],
       "tools_expected": [
@@ -95,9 +94,11 @@
       ],
       "tools_ok": true,
       "keywords_expected": [
+        "温度",
         "°C"
       ],
       "keywords_hit": [
+        "温度",
         "°C"
       ],
       "keywords_ok": true,
@@ -107,25 +108,29 @@
     {
       "id": "weather_forecast",
       "category": "天气预报",
-      "elapsed_s": 61.22,
-      "first_token_ms": 1194,
+      "elapsed_s": 90.68,
+      "first_token_ms": 970,
       "tools_called": [
         "search_skills",
         "search_knowledge",
+        "web_search",
         "forecast_weather",
+        "fetch_url",
+        "fetch_url",
         "web_search",
         "write_file",
         "search_transit",
         "search_transit",
         "search_transit",
+        "search_walking",
         "search_transit",
         "search_transit",
         "search_transit",
         "search_transit",
         "search_transit",
         "search_walking",
-        "search_walking",
-        "search_walking",
+        "search_transit",
+        "search_places",
         "write_file",
         "add_skill"
       ],
@@ -146,8 +151,8 @@
     {
       "id": "transit_simple",
       "category": "路线查询",
-      "elapsed_s": 6.07,
-      "first_token_ms": 853,
+      "elapsed_s": 8.0,
+      "first_token_ms": 1058,
       "tools_called": [
         "search_transit"
       ],
@@ -170,27 +175,19 @@
     {
       "id": "poi_search",
       "category": "POI搜索",
-      "elapsed_s": 57.26,
-      "first_token_ms": 883,
+      "elapsed_s": 33.74,
+      "first_token_ms": 879,
       "tools_called": [
         "search_skills",
         "search_knowledge",
-        "search_places",
-        "forecast_weather",
-        "search_transit",
-        "search_transit",
-        "search_walking",
-        "search_transit",
-        "search_transit",
-        "search_transit",
-        "write_file",
-        "write_file",
-        "add_skill"
+        "web_search",
+        "web_search",
+        "write_file"
       ],
       "tools_expected": [
         "search_places"
       ],
-      "tools_ok": true,
+      "tools_ok": false,
       "keywords_expected": [
         "密室逃脱"
       ],
@@ -198,14 +195,14 @@
         "密室逃脱"
       ],
       "keywords_ok": true,
-      "passed": true,
+      "passed": false,
       "error": null
     },
     {
       "id": "math",
       "category": "数学计算",
-      "elapsed_s": 2.38,
-      "first_token_ms": 2166,
+      "elapsed_s": 4.66,
+      "first_token_ms": 922,
       "tools_called": [
         "calculate"
       ],
@@ -226,8 +223,8 @@
     {
       "id": "kb_search",
       "category": "知识库检索",
-      "elapsed_s": 5.86,
-      "first_token_ms": 866,
+      "elapsed_s": 6.12,
+      "first_token_ms": 945,
       "tools_called": [
         "search_knowledge"
       ],
@@ -248,29 +245,32 @@
     {
       "id": "web_search",
       "category": "联网搜索",
-      "elapsed_s": 65.34,
-      "first_token_ms": 1012,
+      "elapsed_s": 94.54,
+      "first_token_ms": 998,
       "tools_called": [
         "search_skills",
         "search_knowledge",
         "web_search",
         "web_search",
+        "web_search",
+        "web_search",
         "write_file",
         "forecast_weather",
-        "search_walking",
-        "search_transit",
-        "search_transit",
-        "search_transit",
-        "search_transit",
-        "search_transit",
+        "web_search",
         "search_transit",
         "search_transit",
         "search_transit",
         "search_walking",
         "search_transit",
         "search_transit",
+        "search_transit",
+        "search_transit",
+        "search_transit",
+        "search_transit",
+        "search_transit",
         "search_walking",
-        "get_weather_tips",
+        "search_walking",
+        "search_places",
         "write_file",
         "add_skill"
       ],
@@ -279,20 +279,21 @@
       ],
       "tools_ok": true,
       "keywords_expected": [
+        "放假",
         "国庆"
       ],
       "keywords_hit": [
         "国庆"
       ],
-      "keywords_ok": true,
+      "keywords_ok": false,
       "passed": false,
-      "error": "peer closed connection without sending complete message body (incomplete chunked read)"
+      "error": null
     },
     {
       "id": "location_transit",
       "category": "定位+路线",
-      "elapsed_s": 8.34,
-      "first_token_ms": 1034,
+      "elapsed_s": 8.36,
+      "first_token_ms": 1053,
       "tools_called": [
         "search_transit"
       ],
@@ -315,20 +316,22 @@
     {
       "id": "travel_plan",
       "category": "旅游规划",
-      "elapsed_s": 53.46,
-      "first_token_ms": 1024,
+      "elapsed_s": 60.88,
+      "first_token_ms": 924,
       "tools_called": [
         "search_skills",
-        "search_knowledge",
-        "query_weather",
-        "search_transit",
-        "search_transit",
-        "search_transit",
-        "search_walking",
-        "search_walking",
-        "write_file",
         "forecast_weather",
         "search_transit",
+        "search_transit",
+        "search_transit",
+        "search_walking",
+        "search_transit",
+        "search_walking",
+        "search_transit",
+        "write_file",
+        "read_file",
+        "search_transit",
+        "write_file",
         "add_skill"
       ],
       "tools_expected": [
@@ -349,11 +352,15 @@
     {
       "id": "no_web_kb_only",
       "category": "离线知识库",
-      "elapsed_s": 14.01,
-      "first_token_ms": 770,
+      "elapsed_s": 26.84,
+      "first_token_ms": 886,
       "tools_called": [
         "search_knowledge",
-        "search_knowledge"
+        "search_skills",
+        "search_knowledge",
+        "search_places",
+        "search_places",
+        "search_places"
       ],
       "tools_expected": [
         "search_knowledge"
@@ -368,8 +375,8 @@
     {
       "id": "transit_with_location",
       "category": "带定位路线",
-      "elapsed_s": 9.06,
-      "first_token_ms": 2871,
+      "elapsed_s": 11.59,
+      "first_token_ms": 924,
       "tools_called": [
         "search_nearby",
         "search_walking"
@@ -391,8 +398,8 @@
     {
       "id": "multi_mode_compare",
       "category": "多模式对比",
-      "elapsed_s": 6.48,
-      "first_token_ms": 681,
+      "elapsed_s": 8.31,
+      "first_token_ms": 916,
       "tools_called": [
         "search_transit"
       ],
