@@ -2,6 +2,7 @@ from mcp.server.fastmcp import FastMCP
 import httpx
 from bs4 import BeautifulSoup
 from knowledge_base import search as kb_search, add_document as kb_add
+from skill_library import search_skills as sl_search, add_skill as sl_add
 
 mcp = FastMCP("SearchServer")
 
@@ -158,6 +159,43 @@ async def add_knowledge(title: str, content: str) -> str:
         return f"已添加「{title}」到知识库，共 {n} 个语义块"
     except Exception as e:
         return f"添加知识失败: {str(e)}"
+
+
+@mcp.tool()
+async def search_skills(query: str) -> str:
+    """
+    搜索本地技能库（之前成功规划过的行程）。优先使用，命中后直接复用，避免重复联网搜索。
+    :param query: 用户原始问题（如"成都3日游"）
+    :return: 匹配的行程技能
+    """
+    try:
+        results = sl_search(query, top_k=3)
+        if not results:
+            return "技能库中无匹配行程"
+
+        lines = [f"技能库找到 {len(results)} 条相似行程:\n"]
+        for i, r in enumerate(results, 1):
+            lines.append(f"技能{i}：{r['query']} (相关度: {r['score']})")
+            lines.append(f"创建于: {r['created_at']}")
+            lines.append(f"行程:\n{r['itinerary'][:2000]}\n")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"搜索技能库出错: {str(e)}"
+
+
+@mcp.tool()
+async def add_skill(query: str, itinerary: str) -> str:
+    """
+    将成功规划的行程保存为技能。旅游规划完成后调用此工具，下次类似需求可直接复用。
+    :param query: 用户原始问题
+    :param itinerary: 完整行程内容
+    :return: 保存结果
+    """
+    try:
+        n = sl_add(query, itinerary)
+        return f"技能已保存，当前技能库共 {n} 条"
+    except Exception as e:
+        return f"保存技能失败: {str(e)}"
 
 
 if __name__ == "__main__":

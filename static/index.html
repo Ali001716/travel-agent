@@ -355,7 +355,7 @@
 
 <header>
   <button id="menu-btn" onclick="toggleSidebar()">☰</button>
-  <h1>AI Assistant <span style="font-size:11px;color:#999;">v26</span></h1>
+  <h1>AI Assistant <span style="font-size:11px;color:#999;">v27</span></h1>
   <div style="display:flex;gap:8px;">
     <button onclick="togglePrefPanel()" id="pref-btn" style="position:relative;">
       偏好 <span id="pref-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;background:#ef4444;border-radius:50%;"></span>
@@ -528,11 +528,31 @@
 
   async function loadKBStats() {
     try {
-      const resp = await fetch('/api/kb/stats');
-      const data = await resp.json();
+      const [kbResp, skResp] = await Promise.all([
+        fetch('/api/kb/stats'), fetch('/api/skills/stats')
+      ]);
+      const kb = await kbResp.json();
+      const sk = await skResp.json();
       document.getElementById('kb-stats').innerHTML =
-        '知识库: ' + (data.total_chunks || 0) + ' 个片段 · ' + (data.total_documents || 0) + ' 篇文档';
-    } catch {}
+        '知识库: ' + (kb.total_chunks || 0) + ' 片段 · ' + (kb.total_documents || 0) + ' 篇<br>' +
+        '技能库: ' + (sk.total_skills || 0) + ' 条行程';
+    } catch {
+      document.getElementById('kb-stats').innerHTML = '知识库: ...';
+    }
+  }
+
+  // 自动保存行程为技能
+  function autoSaveSkill(msgDiv, userText) {
+    const content = msgDiv.querySelector('.bubble-content');
+    if (!content) return;
+    const text = (content._rawText || content.textContent || '');
+    // 判断是否为旅游规划（包含 Day 或 日游）
+    if (/(Day\s*\d|日游|行程|旅游规划)/.test(text) && text.length > 500) {
+      fetch('/api/skills', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userText, itinerary: text.substring(0, 8000) }),
+      }).catch(() => {});
+    }
   }
 
   // 恢复上次的位置
@@ -953,6 +973,8 @@
               removeStatusBar();
               injectMapButtons(aiMsg);
               loadSessions();
+              loadKBStats();
+              autoSaveSkill(aiMsg, text);
             } else if (data.type === 'error') {
               content._rawText = (content._rawText || '') + '\n\n[错误: ' + data.error + ']';
               content.innerHTML = renderMarkdown(content._rawText);

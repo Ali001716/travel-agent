@@ -24,6 +24,9 @@ search_cache.json
 # 知识库向量数据
 kb_data/
 
+# 技能库数据
+skill_data/
+
 # Docker
 Dockerfile
 docker-compose.yml

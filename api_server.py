@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from langchain_core.messages import HumanMessage
@@ -82,6 +82,14 @@ async def lifespan(app: FastAPI):
         "  title TEXT,"
         "  created_at TEXT,"
         "  updated_at TEXT"
+        ")"
+    )
+    session_db.execute(
+        "CREATE TABLE IF NOT EXISTS visited_places ("
+        "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  thread_id TEXT,"
+        "  place_name TEXT,"
+        "  visit_date TEXT"
         ")"
     )
     session_db.commit()
@@ -236,6 +244,53 @@ async def delete_session(thread_id: str):
     except Exception as e:
         logger.warning("删除 checkpoint 失败: %s", e)
     return {"ok": True}
+
+
+@app.get("/api/history")
+async def get_history():
+    """获取去过的地方列表"""
+    rows = session_db.execute(
+        "SELECT id, place_name, visit_date FROM visited_places ORDER BY visit_date DESC"
+    ).fetchall()
+    return [{"id": r[0], "place_name": r[1], "visit_date": r[2]} for r in rows]
+
+
+@app.post("/api/history")
+async def add_history(req: Request):
+    body = await req.json()
+    name = body.get("place_name", "")
+    if not name:
+        return {"error": "缺少 place_name"}
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    session_db.execute(
+        "INSERT INTO visited_places (thread_id, place_name, visit_date) VALUES (?, ?, ?)",
+        ("default", name, now),
+    )
+    session_db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/history/{place_id}")
+async def delete_history(place_id: int):
+    session_db.execute("DELETE FROM visited_places WHERE id = ?", (place_id,))
+    session_db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/skills/stats")
+async def skills_stats():
+    """技能库统计"""
+    from skill_library import get_stats as sl_stats
+    return sl_stats()
+
+
+@app.post("/api/skills")
+async def save_skill(query: str = "", itinerary: str = ""):
+    """保存行程技能"""
+    from skill_library import add_skill as sl_add
+    body = await request.json()
+    n = sl_add(body.get("query", ""), body.get("itinerary", ""))
+    return {"ok": True, "total_skills": n}
 
 
 @app.get("/api/kb/stats")
@@ -393,6 +448,17 @@ def build_message(message: str, location: LocationInfo | None, preferences: dict
                 pref_texts.append(PREF_LABELS[key][value])
         if pref_texts:
             parts.append("[用户偏好: " + "，".join(pref_texts) + "]")
+
+    # 注入已去过的地方
+    try:
+        rows = session_db.execute(
+            "SELECT DISTINCT place_name FROM visited_places"
+        ).fetchall()
+        if rows:
+            visited = [r[0] for r in rows][:20]
+            parts.append("[已去过的地方: " + "，".join(visited) + " — 规划时默认排除，除非用户要求再去]")
+    except Exception:
+        pass
 
     if parts:
         return "\n".join(parts) + "\n\n" + message
