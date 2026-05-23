@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Assistant</title>
+<title>吃喝玩乐小助手</title>
 <style>
   :root {
     --bg: #f5f5f5;
@@ -346,6 +346,10 @@
     <button onclick="newSession()">+ 新会话</button>
   </div>
   <div id="session-list"></div>
+  <div style="padding:8px 16px;border-top:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;" onclick="toggleSkills()">
+    已存技能 <span id="skill-count">0</span> <span style="float:right;font-weight:400;color:var(--text-secondary);">展开 ▾</span>
+  </div>
+  <div id="skill-list" style="display:none;padding:0 8px 8px;max-height:200px;overflow-y:auto;"></div>
   <div id="kb-stats" style="padding:10px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-secondary);"></div>
 </div>
 
@@ -355,7 +359,7 @@
 
 <header>
   <button id="menu-btn" onclick="toggleSidebar()">☰</button>
-  <h1>AI Assistant <span style="font-size:11px;color:#999;">v28</span></h1>
+  <h1>吃喝玩乐小助手 <span style="font-size:11px;color:#999;">v30</span></h1>
   <div style="display:flex;gap:8px;">
     <button onclick="togglePrefPanel()" id="pref-btn" style="position:relative;">
       偏好 <span id="pref-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;background:#ef4444;border-radius:50%;"></span>
@@ -525,6 +529,33 @@
   loadSessions();
   loadKBStats();
   showQRCode();
+  loadSidebarSkills();
+
+  async function loadSidebarSkills() {
+    try {
+      const resp = await fetch('/api/skills');
+      const skills = await resp.json();
+      document.getElementById('skill-count').textContent = skills.length;
+      const list = document.getElementById('skill-list');
+      list.innerHTML = skills.map((s, i) => `
+        <div style="padding:6px 8px;margin:2px 0;background:#f8f9fa;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="${s.query}">${s.query}</div>
+          <button onclick="deleteSkill(${s.idx})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 2px;" title="删除">✕</button>
+        </div>
+      `).join('') || '<div style="font-size:12px;color:#999;padding:8px;">暂无技能</div>';
+    } catch {}
+  }
+
+  async function deleteSkill(idx) {
+    await fetch('/api/skills/' + idx, { method: 'DELETE' });
+    loadSidebarSkills();
+    loadKBStats();
+  }
+
+  function toggleSkills() {
+    const list = document.getElementById('skill-list');
+    list.style.display = list.style.display === 'none' ? 'block' : 'none';
+  }
 
   async function loadKBStats() {
     try {
@@ -575,6 +606,8 @@
 
     showRatingModal(places.slice(0, 10));
     loadSessions();
+    loadKBStats();
+    loadSidebarSkills();
   }
 
   // 评分弹窗
@@ -601,8 +634,11 @@
     function renderCard() {
       const card = document.getElementById('rating-card');
       card.innerHTML = `
-        <h3 style="margin:0 0 4px;">${idx+1}/${places.length} ${currentPlace()}</h3>
-        <p style="font-size:12px;color:#999;margin:0 0 12px;">点击星星评分，留空可跳过</p>
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-size:13px;color:#999;">${idx+1}/${places.length}</div>
+          <div style="font-size:22px;font-weight:700;color:var(--primary);margin:4px 0;">${currentPlace()}</div>
+          <div style="font-size:12px;color:#999;">点击星星评分，留空可跳过</div>
+        </div>
         ${RATING_DIMS.map(d => `
           <div style="margin-bottom:8px;">
             <span style="font-size:13px;">${d.emoji} ${d.label}</span>

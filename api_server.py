@@ -322,6 +322,16 @@ async def skills_stats():
     return sl_stats()
 
 
+@app.get("/api/skills")
+async def list_skills():
+    """列出所有技能"""
+    from skill_library import _load_skills
+    skills = _load_skills()
+    return [{"idx": i, "query": s["query"], "created_at": s.get("created_at", ""),
+             "itinerary_preview": s.get("itinerary", "")[:200]}
+            for i, s in enumerate(skills)]
+
+
 @app.post("/api/skills")
 async def save_skill(query: str = "", itinerary: str = ""):
     """保存行程技能"""
@@ -329,6 +339,18 @@ async def save_skill(query: str = "", itinerary: str = ""):
     body = await request.json()
     n = sl_add(body.get("query", ""), body.get("itinerary", ""))
     return {"ok": True, "total_skills": n}
+
+
+@app.delete("/api/skills/{idx}")
+async def delete_skill(idx: int):
+    """删除技能"""
+    from skill_library import _load_skills, _save_skills
+    skills = _load_skills()
+    if 0 <= idx < len(skills):
+        skills.pop(idx)
+        _save_skills(skills)
+        return {"ok": True}
+    return {"error": "无效索引"}
 
 
 @app.get("/api/kb/stats")
