@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -491,6 +492,42 @@ PREF_LABELS = {
 }
 
 
+async def compress_context(thread_id: str):
+    """压缩旧工具消息：保留最近 5 个工具结果原文，更早的截断到 200 字"""
+    try:
+        config = {"configurable": {"thread_id": thread_id}}
+        state = await agent.aget_state(config)
+        if not state or not state.values:
+            return 0
+
+        msgs = list(state.values.get("messages", []))
+        if not msgs:
+            return 0
+
+        tool_count = 0
+        compressed = 0
+        for i in range(len(msgs) - 1, -1, -1):
+            m = msgs[i]
+            role = getattr(m, "type", "")
+            if role == "tool":
+                tool_count += 1
+                content = str(getattr(m, "content", ""))
+                if tool_count > 8 and len(content) > 200:
+                    from langchain_core.messages import ToolMessage
+                    msgs[i] = ToolMessage(
+                        content=content[:200] + "...[已截断]",
+                        tool_call_id=getattr(m, "tool_call_id", ""),
+                    )
+                    compressed += 1
+
+        if compressed > 0:
+            await agent.aupdate_state(config, {"messages": msgs})
+        return compressed
+    except Exception as e:
+        logger.debug("压缩上下文失败: %s", e)
+        return 0
+
+
 def build_message(message: str, location: LocationInfo | None, preferences: dict | None = None) -> str:
     """注入位置上下文和偏好设置"""
     parts = []
@@ -684,6 +721,7 @@ async def chat_stream(request: ChatRequest):
                             yield f"data: {json.dumps({'type': 'search_ready', 'search_id': m.group(1)})}\n\n"
 
             trace.finish()
+            asyncio.create_task(compress_context(request.thread_id))
             elapsed = time.time() - start
             logger.info("[%s] 流式回复完成 (%.2fs) | LLM:%d次 Tool:%d个 Token:%d",
                         request.thread_id, elapsed, trace.llm_calls, len(trace.tool_calls), trace.total_tokens)
